@@ -20,15 +20,18 @@ namespace SocketIO.Emitter
         private const int EVENT = 2;
         private const int BINARY_EVENT = 5;
 
+        private readonly string _emitterId; 
+
         private Emitter(ConnectionMultiplexer redisClient, EmitterOptions options, IStreamReader streamReader)
         {
             if (redisClient == null) { InitClient(options); } else { _redisClient = redisClient; }
 
-            _key = (!string.IsNullOrWhiteSpace(options.Key) ? options.Key : "socket.io") + "#emitter";
+            _key = (!string.IsNullOrWhiteSpace(options.Key) ? options.Key : "socket.io") + "#/#";
 
             _rooms = Enumerable.Empty<string>().ToList();
             _flags = new Dictionary<string, object>();
             _streamReader = streamReader;
+            _emitterId = Convert.ToBase64String(Guid.NewGuid().ToByteArray()).Replace("=", string.Empty).Replace("/", string.Empty);
         }
 
         public Emitter(ConnectionMultiplexer redisClient,EmitterOptions options)
@@ -118,7 +121,7 @@ namespace SocketIO.Emitter
 
             using (Stream stream = new MemoryStream())
             {
-                serializer.Pack(stream, new object[] { packet, data });
+                serializer.Pack(stream, new object[] { _emitterId, packet, data });
                 return _streamReader.ReadToEnd(stream);
             }
         }
